@@ -1,0 +1,145 @@
+#1. COLIMA
+#STOP COLIMA
+colima stop
+
+#START COLIMA
+colima start --network-address
+
+#CHECK COLIMA
+colima list
+
+#PROFILE    STATUS     ARCH      CPUS    MEMORY    DISK     RUNTIME    ADDRESS
+#default    Running    x86_64    2       2GiB      60GiB    docker     192.168.106.2
+
+# Kind version 0.19.0 only works due to issues with 0.20
+#   go install sigs.k8s.io/kind@v0.19.0
+#
+
+export PATH=$PATH:/Users/nagakaravadi/go/bin
+kind version
+#kind v0.19.0 go1.21.0 darwin/amd64
+
+#Alias for convenience
+alias k=kubectl
+
+# Create kind cluster
+kind create cluster --config kind/kind-config.yaml
+
+# network
+export colima_host_ip=$(ifconfig bridge100 | grep "inet " | cut -d' ' -f2)
+echo colima_host_ip $colima_host_ip 
+export colima_vm_ip=$(colima list | grep docker | awk '{print $8}')
+echo colima_vm_ip $colima_vm_ip
+export colima_kind_cidr=$(docker network inspect -f '{{.IPAM.Config}}' kind | cut -d'{' -f2 | cut -d' ' -f1)
+echo colima_kind_cidr $colima_kind_cidr
+export colima_kind_cidr_short=$(docker network inspect -f '{{.IPAM.Config}}' kind | cut -d'{' -f2 | cut -d' ' -f1| cut -d '.' -f1-2)
+echo colima_kind_cidr_short $colima_kind_cidr_short
+export colima_vm_iface=$(colima ssh -- "ifconfig" | grep -B 1 $colima_vm_ip | cut -d' ' -f1)
+echo colima_vm_iface $colima_vm_iface
+export colima_kind_iface=$(colima ssh -- "ifconfig" | grep -B 1 $colima_kind_cidr_short | cut -d' ' -f1)
+echo colima_kind_iface $colima_kind_iface
+echo Setting route to send traffic to VM
+echo sudo route -nv add -net $colima_kind_cidr_short $colima_vm_ip
+sudo route -nv add -net $colima_kind_cidr_short $colima_vm_ip
+
+echo
+echo "Forward traffic from VM to Kind network"
+echo "Run this command in colima ssh"
+echo "sudo iptables -A FORWARD -s $colima_host_ip -d $colima_kind_cidr -i $colima_vm_iface -o $colima_kind_iface -p tcp -j ACCEPT"
+
+
+# Metallb Load Balancer
+kubectl apply -f metallb/metallb-native.yaml
+kubectl wait --namespace metallb-system --for=condition=ready pod --selector=app=metallb --timeout=90s
+
+kubectl apply -f metallb/metallb-conf.yaml 
+
+# TEST APP with two different hellos that are load balanced
+# k apply -f kubectl/hello-test.yaml
+# LB_IP=$(kubectl get svc/foo-bar-service -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
+# echo $LB_IP
+# for _ in {1..10}; do   curl ${LB_IP}:5678; done
+
+##################
+echo colima_host_ip $colima_host_ip 
+echo colima_vm_ip $colima_vm_ip
+echo colima_kind_cidr $colima_kind_cidr
+echo colima_kind_cidr_short $colima_kind_cidr_short
+echo colima_vm_iface $colima_vm_iface
+echo colima_kind_iface $colima_kind_iface
+LB_IP=$(kubectl get svc/foo-bar-service -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
+echo $LB_IP
+
+######################
+# ISTIO
+
+brew install istioctl
+#istioctl x precheck
+
+# Install the demo profile
+istioctl install --set profile=demo -y
+
+# Istio sidecars automatically installed in default namespace
+kubectl label namespace default istio-injection=enabled
+
+
+#Istio sample app
+#  https://istio.io/latest/docs/setup/getting-started/#download
+#  https://istio.io/latest/docs/examples/bookinfo/
+
+# Services and Pods
+kubectl apply -f istio/samplebookstore/bookinfo.yaml
+
+# Istio Ingress gateway
+kubectl apply -f istio/samplebookstore/bookinfo-gateway.yaml
+
+###############
+# WIND UP
+###############
+kind delete cluster --name kind-multi-node
+colima stop
+
+
+
+
+
+#################
+# KIND CHEATSHEET
+#################
+
+# kind get clusters
+# kind delete cluster --name kind-multi-node
+# kind create cluster --config kind/kind-config.yaml
+
+######################
+# KUBECTL CHEATSHEET
+######################
+
+# k cluster-info --context kind-kind-multi-node
+
+
+########################
+# Grpc Postman
+########################
+
+https://grpc.io/blog/wireshark/
+=> By examining the HTTP2 message header path field, you’ll see the URL to the app’s service (/tutorial.PersonSearchService), followed by the name of the invoked RPC (Search).
+
+=> package.service/methodname
+
+=> tutorial.PersonSearchRequest/Search
+
+
+            syntax = "proto3";
+            package tutorial;
+            import "addressbook.proto";
+
+            message PersonSearchRequest {
+            repeated string name = 1;
+            repeated int32 id = 2;
+            repeated string phoneNumber = 3;
+            }
+
+            service PersonSearchService {
+            rpc Search (PersonSearchRequest) returns (stream Person) {}
+            }
