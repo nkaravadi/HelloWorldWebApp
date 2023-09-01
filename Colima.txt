@@ -25,27 +25,33 @@ alias k=kubectl
 # Create kind cluster
 kind create cluster --config kind/kind-config.yaml
 
+###############
 # network
-export colima_host_ip=$(ifconfig bridge100 | grep "inet " | cut -d' ' -f2)
-echo colima_host_ip $colima_host_ip 
-export colima_vm_ip=$(colima list | grep docker | awk '{print $8}')
-echo colima_vm_ip $colima_vm_ip
-export colima_kind_cidr=$(docker network inspect -f '{{.IPAM.Config}}' kind | cut -d'{' -f2 | cut -d' ' -f1)
-echo colima_kind_cidr $colima_kind_cidr
-export colima_kind_cidr_short=$(docker network inspect -f '{{.IPAM.Config}}' kind | cut -d'{' -f2 | cut -d' ' -f1| cut -d '.' -f1-2)
-echo colima_kind_cidr_short $colima_kind_cidr_short
-export colima_vm_iface=$(colima ssh -- "ifconfig" | grep -B 1 $colima_vm_ip | cut -d' ' -f1)
-echo colima_vm_iface $colima_vm_iface
-export colima_kind_iface=$(colima ssh -- "ifconfig" | grep -B 1 $colima_kind_cidr_short | cut -d' ' -f1)
-echo colima_kind_iface $colima_kind_iface
-echo Setting route to send traffic to VM
-echo sudo route -nv add -net $colima_kind_cidr_short $colima_vm_ip
-sudo route -nv add -net $colima_kind_cidr_short $colima_vm_ip
+###############
 
-echo
-echo "Forward traffic from VM to Kind network"
-echo "Run this command in colima ssh"
-echo "sudo iptables -A FORWARD -s $colima_host_ip -d $colima_kind_cidr -i $colima_vm_iface -o $colima_kind_iface -p tcp -j ACCEPT"
+#Use this for all the steps below
+./SetupNetWorking.sh 
+
+#export colima_host_ip=$(ifconfig bridge100 | grep "inet " | cut -d' ' -f2)
+#echo colima_host_ip $colima_host_ip 
+#export colima_vm_ip=$(colima list | grep docker | awk '{print $8}')
+#echo colima_vm_ip $colima_vm_ip
+#export colima_kind_cidr=$(docker network inspect -f '{{.IPAM.Config}}' kind | cut -d'{' -f2 | cut -d' ' -f1)
+#echo colima_kind_cidr $colima_kind_cidr
+#export colima_kind_cidr_short=$(docker network inspect -f '{{.IPAM.Config}}' kind | cut -d'{' -f2 | cut -d' ' -f1| cut -d '.' -f1-2)
+#echo colima_kind_cidr_short $colima_kind_cidr_short
+#export colima_vm_iface=$(colima ssh -- "ifconfig" | grep -B 1 $colima_vm_ip | cut -d' ' -f1)
+#echo colima_vm_iface $colima_vm_iface
+#export colima_kind_iface=$(colima ssh -- "ifconfig" | grep -B 1 $colima_kind_cidr_short | cut -d' ' -f1)
+#echo colima_kind_iface $colima_kind_iface
+#echo Setting route to send traffic to VM
+#echo sudo route -nv add -net $colima_kind_cidr_short $colima_vm_ip
+#sudo route -nv add -net $colima_kind_cidr_short $colima_vm_ip
+
+#echo
+#echo "Forward traffic from VM to Kind network"
+#echo "Run this command in colima ssh"
+#echo "sudo iptables -A FORWARD -s $colima_host_ip -d $colima_kind_cidr -i $colima_vm_iface -o $colima_kind_iface -p tcp -j ACCEPT"
 
 
 # Metallb Load Balancer
@@ -72,8 +78,8 @@ echo $LB_IP
 
 ######################
 # ISTIO
-
-brew install istioctl
+#  One time call
+#brew install istioctl
 #istioctl x precheck
 
 # Install the demo profile
@@ -82,6 +88,20 @@ istioctl install --set profile=demo -y
 # Istio sidecars automatically installed in default namespace
 kubectl label namespace default istio-injection=enabled
 
+#---After you load your istio gateway
+export INGRESS_NAME=istio-ingressgateway
+export INGRESS_NS=istio-system
+kubectl get svc "$INGRESS_NAME" -n "$INGRESS_NS"
+
+export INGRESS_HOST=$(kubectl -n "$INGRESS_NS" get service "$INGRESS_NAME" -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+export INGRESS_PORT=$(kubectl -n "$INGRESS_NS" get service "$INGRESS_NAME" -o jsonpath='{.spec.ports[?(@.name=="http2")].port}')
+export SECURE_INGRESS_PORT=$(kubectl -n "$INGRESS_NS" get service "$INGRESS_NAME" -o jsonpath='{.spec.ports[?(@.name=="https")].port}')
+export TCP_INGRESS_PORT=$(kubectl -n "$INGRESS_NS" get service "$INGRESS_NAME" -o jsonpath='{.spec.ports[?(@.name=="tcp")].port}')
+
+echo INGRESS_HOST $INGRESS_HOST
+echo INGRESS_PORT $INGRESS_PORT
+echo SECURE_INGRESS_PORT $SECURE_INGRESS_PORT
+echo TCP_INGRESS_PORT $TCP_INGRESS_PORT
 
 #Istio sample app
 #  https://istio.io/latest/docs/setup/getting-started/#download

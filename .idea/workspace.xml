@@ -5,23 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b4229c20-60ea-4126-97dd-e68eeadab67b" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kind/kind-config.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kind/kind-registry.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kubectl/hello-test.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kubectl/hello-world-java-pod.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kubectl/hello-world-java-svc.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kubectl/ingress.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kubectl/test-deployment.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/metallb/metallb-conf.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/naga/HelloController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/naga/HelloMessage.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/naga/Main.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -153,6 +137,7 @@
       <workItem from="1691901813125" duration="22664000" />
       <workItem from="1692831945279" duration="5156000" />
       <workItem from="1692847824410" duration="328000" />
+      <workItem from="1693406143814" duration="196000" />
     </task>
     <servers />
   </component>
